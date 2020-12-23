@@ -4,14 +4,22 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
+using Usb.Events;
 
 namespace TerminalService
 {
     class Program
     {
-        private static bool IsStart = false;
+        private static BarDecoder.Decoder decoder;
+
+        private static readonly IUsbEventWatcher usbEventWatcher = new UsbEventWatcher();
+
         private static string nameService = "Service: ";
         private static string os;
+        private static bool IsStart = false;
+        private static int currentCountPorts;
+
         static void Main(string[] args)
         {
             os = Environment.OSVersion.Platform.ToString();
@@ -36,6 +44,7 @@ namespace TerminalService
             waitCommand();
         }
 
+        
         private static void waitCommand()
         {
             string command = Console.ReadLine();
@@ -56,15 +65,17 @@ namespace TerminalService
             }
             waitCommand();
         }
-
-        private static BarDecoder.Decoder decoder;
+        
         private static void startDecoder()
         {
             decoder = new BarDecoder.Decoder();
+            getCurrentCountPorts();
             decoder.StartDecode();
             decoder.onBarcodeDecode += Decoder_onBarcodeDecode;
-        }
 
+            usbEventWatcher.UsbDeviceAdded += UsbEventWatcher_UsbDeviceAdded;
+            usbEventWatcher.UsbDeviceRemoved += UsbEventWatcher_UsbDeviceRemoved;
+        }
         private static void Decoder_onBarcodeDecode(BarDecoder.Decoder decoder, BarDecoder.Decoder.BarcodeValue data)
         {
             var postData = JsonConvert.SerializeObject(data);
@@ -99,15 +110,44 @@ namespace TerminalService
             }
         }
 
-        private static void stopDecoder()
+        private static void UsbEventWatcher_UsbDeviceAdded(object sender, UsbDevice e)
         {
-            decoder.StopDecode();
+            if (decoder.GetPortCount() > currentCountPorts)
+            {
+                getCurrentCountPorts();
+                Console.WriteLine(nameService + "Обнаруженно новое подключение! Количество подключений: " + currentCountPorts);
+                restartDecoder();
+            }
+        }
+
+        private static void UsbEventWatcher_UsbDeviceRemoved(object sender, UsbDevice e)
+        {
+            if (decoder.GetPortCount() < currentCountPorts)
+            {
+                getCurrentCountPorts();
+                Console.WriteLine(nameService + "Пропало одно подключение! Количество подключений: " + currentCountPorts);
+                if (currentCountPorts == 0)
+                {
+                    stopDecoder();
+                }
+            }
+        }
+
+        private static void getCurrentCountPorts()
+        {
+            currentCountPorts = decoder.GetPortCount();
         }
 
         private static void restartDecoder()
         {
+            Console.WriteLine(nameService + "Перезапуск декодера!");
             decoder.StopDecode();
             decoder.StartDecode();
+        }
+
+        private static void stopDecoder()
+        {
+            decoder.StopDecode();
         }
 
         private static void stopService()
