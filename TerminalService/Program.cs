@@ -2,33 +2,42 @@
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
+using System.IO.Ports;
+using System.Reflection;
 using System.Text;
 using System.Text.RegularExpressions;
+using System.Threading;
 using Usb.Events;
 
 namespace TerminalService
 {
-    class Program
+    public class TerminalService
     {
-        private static BarDecoder.Decoder decoder;
+        private BarDecoder.Decoder decoder;
 
-        private static readonly IUsbEventWatcher usbEventWatcher = new UsbEventWatcher();
+        private readonly IUsbEventWatcher usbEventWatcher = new UsbEventWatcher();
 
         private static string nameService = "Service: ";
         private static string os;
-        private static bool IsStart = false;
-        private static int currentCountPorts;
+        private bool IsStart = false;
+        private int currentCountPorts;
 
         static void Main(string[] args)
         {
             os = Environment.OSVersion.Platform.ToString();
             //Console.WriteLine(nameService + os);
             //Console.WriteLine(nameService+"Ожидание команды...");
+            new TerminalService();
+        }
+
+        public TerminalService()
+        {
             StartService();
         }
 
-        private static void StartService()
+        private void StartService()
         {
             if (!IsStart)
             {
@@ -45,13 +54,16 @@ namespace TerminalService
         }
 
         
-        private static void waitCommand()
+        private void waitCommand()
         {
             string command = Console.ReadLine();
             switch (command)
             {
                 case "start":
                     StartService();
+                    break;
+                case "start decoder":
+                    startDecoder();
                     break;
                 case "stop decoder":
                     stopDecoder();
@@ -62,21 +74,30 @@ namespace TerminalService
                 case "stop":
                     stopService();
                     break;
+                default:
+                    Console.WriteLine(nameService + "Команда {0} не найдена", command);
+                    break;
             }
             waitCommand();
         }
         
-        private static void startDecoder()
+        private void startDecoder()
         {
-            decoder = new BarDecoder.Decoder();
-            getCurrentCountPorts();
-            decoder.StartDecode();
-            decoder.onBarcodeDecode += Decoder_onBarcodeDecode;
+            if (decoder == null)
+            {
+                decoder = new BarDecoder.Decoder();
+                decoder.StartDecode();
+                getCurrentCountPorts();
+                decoder.onBarcodeDecode += Decoder_onBarcodeDecode;
 
-            usbEventWatcher.UsbDeviceAdded += UsbEventWatcher_UsbDeviceAdded;
-            usbEventWatcher.UsbDeviceRemoved += UsbEventWatcher_UsbDeviceRemoved;
+                usbEventWatcher.UsbDeviceAdded += UsbEventWatcher_UsbDeviceAdded;
+            }
+            else
+            {
+                Console.WriteLine(nameService+"Декодер уже запущен!");
+            }
         }
-        private static void Decoder_onBarcodeDecode(BarDecoder.Decoder decoder, BarDecoder.Decoder.BarcodeValue data)
+        private void Decoder_onBarcodeDecode(BarDecoder.Decoder decoder, BarDecoder.Decoder.BarcodeValue data)
         {
             var postData = JsonConvert.SerializeObject(data);
             var request = new HttpRequest();
@@ -110,47 +131,59 @@ namespace TerminalService
             }
         }
 
-        private static void UsbEventWatcher_UsbDeviceAdded(object sender, UsbDevice e)
+        private void UsbEventWatcher_UsbDeviceAdded(object sender, UsbDevice e)
         {
             if (decoder.GetPortCount() > currentCountPorts)
             {
-                getCurrentCountPorts();
-                Console.WriteLine(nameService + "Обнаруженно новое подключение! Количество подключений: " + currentCountPorts);
+                Console.WriteLine(nameService + "Обнаружен доступный COM порт!");
+                getCurrentCountPorts();                
                 restartDecoder();
             }
         }
 
-        private static void UsbEventWatcher_UsbDeviceRemoved(object sender, UsbDevice e)
+        private void getCurrentCountPorts()
         {
-            if (decoder.GetPortCount() < currentCountPorts)
+            currentCountPorts = decoder.GetPortCount();
+            Console.WriteLine(nameService + "Количество доступных COM портов: " + currentCountPorts);
+        }
+
+        private void restartDecoder()
+        {
+            if (decoder != null)
             {
-                getCurrentCountPorts();
-                Console.WriteLine(nameService + "Пропало одно подключение! Количество подключений: " + currentCountPorts);
-                if (currentCountPorts == 0)
-                {
-                    stopDecoder();
-                }
+                Console.WriteLine(nameService + "Перезапуск декодера!");
+                decoder.StopDecode();
+                decoder.StartDecode();
+            }
+            else
+            {
+                Console.WriteLine(nameService + "Декодер выключен!");
             }
         }
 
-        private static void getCurrentCountPorts()
+        private void stopDecoder()
         {
-            currentCountPorts = decoder.GetPortCount();
+            if (decoder != null)
+            {
+                decoder.StopDecode();
+                decoder = null;
+            }
+            else
+            {
+                if (new Random().Next(0,100) == new Random().Next(0, 100))
+                {
+                    Console.WriteLine(nameService + "Чтобы что-то остановить, нужно сначала запустить");
+                }
+                else
+                {
+                    Console.WriteLine(nameService + "Декодер выключен!");
+                }
+                
+            }
+            
         }
 
-        private static void restartDecoder()
-        {
-            Console.WriteLine(nameService + "Перезапуск декодера!");
-            decoder.StopDecode();
-            decoder.StartDecode();
-        }
-
-        private static void stopDecoder()
-        {
-            decoder.StopDecode();
-        }
-
-        private static void stopService()
+        private void stopService()
         {
             Console.WriteLine("Остановка сервиса...");
             stopDecoder();
