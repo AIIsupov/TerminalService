@@ -91,12 +91,14 @@ namespace TerminalService
                 decoder.onBarcodeDecode += Decoder_onBarcodeDecode;
 
                 usbEventWatcher.UsbDeviceAdded += UsbEventWatcher_UsbDeviceAdded;
+                usbEventWatcher.UsbDeviceRemoved += UsbEventWatcher_UsbDeviceRemoved; ;
             }
             else
             {
                 Console.WriteLine(nameService+"Декодер уже запущен!");
             }
         }
+
         private void Decoder_onBarcodeDecode(BarDecoder.Decoder decoder, BarDecoder.Decoder.BarcodeValue data)
         {
             var postData = JsonConvert.SerializeObject(data);
@@ -137,6 +139,16 @@ namespace TerminalService
             {
                 Console.WriteLine(nameService + "Обнаружен доступный COM порт!");
                 getCurrentCountPorts();                
+                restartDecoder();
+            }
+        }
+
+        private void UsbEventWatcher_UsbDeviceRemoved(object sender, UsbDevice e)
+        {
+            if (decoder.GetPortCount() < currentCountPorts)
+            {
+                Console.WriteLine(nameService + "Потерян доступ к одному из COM портов!");
+                getCurrentCountPorts();
                 restartDecoder();
             }
         }
