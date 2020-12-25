@@ -19,7 +19,7 @@ namespace TerminalService
 
         private readonly IUsbEventWatcher usbEventWatcher = new UsbEventWatcher();
 
-        private static string nameService = "Service: ";
+        private static string nameService = "Service:> ";
         private static string os;
         private bool IsStart = false;
         private int currentCountPorts;
@@ -56,6 +56,7 @@ namespace TerminalService
         
         private void waitCommand()
         {
+            Console.Write(nameService);
             string command = Console.ReadLine();
             switch (command)
             {
@@ -73,6 +74,9 @@ namespace TerminalService
                     break;
                 case "stop":
                     stopService();
+                    break;
+                case "clear":
+                    Console.Clear();
                     break;
                 default:
                     Console.WriteLine(nameService + "Команда {0} не найдена", command);
@@ -164,8 +168,8 @@ namespace TerminalService
             if (decoder != null)
             {
                 Console.WriteLine(nameService + "Перезапуск декодера!");
-                decoder.StopDecode();
-                decoder.StartDecode();
+                stopDecoder();
+                startDecoder();
             }
             else
             {

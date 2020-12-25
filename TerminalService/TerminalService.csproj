@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,20 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="BarDecoder" Version="1.0.0.1" />
     <PackageReference Include="Leaf.xNet" Version="5.2.10" />
     <PackageReference Include="Newtonsoft.Json" Version="12.0.3" />
-    <PackageReference Include="System.IO.Ports" Version="5.0.0" />
+    <PackageReference Include="NuGet.CommandLine.XPlat" Version="5.8.0" />
     <PackageReference Include="Usb.Events" Version="1.1.0.1" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="Connect\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Reference Include="BarDecoder">
-      <HintPath>packages\BarDecoder.dll</HintPath>
-    </Reference>
   </ItemGroup>
 
   <ItemGroup>
@@ -35,6 +26,12 @@
       <Generator>ResXFileCodeGenerator</Generator>
       <LastGenOutput>Resources.Designer.cs</LastGenOutput>
     </EmbeddedResource>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="connect\Connection.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
