@@ -95,7 +95,7 @@ namespace TerminalService
                 decoder.onBarcodeDecode += Decoder_onBarcodeDecode;
 
                 usbEventWatcher.UsbDeviceAdded += UsbEventWatcher_UsbDeviceAdded;
-                usbEventWatcher.UsbDeviceRemoved += UsbEventWatcher_UsbDeviceRemoved; ;
+                usbEventWatcher.UsbDeviceRemoved += UsbEventWatcher_UsbDeviceRemoved;
             }
             else
             {
