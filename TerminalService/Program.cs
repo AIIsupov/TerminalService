@@ -135,6 +135,7 @@ namespace TerminalService
             {
 
             }
+            Console.Write(nameService);
         }
 
         private void UsbEventWatcher_UsbDeviceAdded(object sender, UsbDevice e)
